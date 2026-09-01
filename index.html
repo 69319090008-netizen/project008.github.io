@@ -1,33 +1,634 @@
 <!DOCTYPE html>
-<html lang="th"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Temperature Monitoring</title>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DHT11 + ESP32 CYD — โครงงานวัดอุณหภูมิ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+Thai:wght@400;500;600;700&family=Noto+Sans+Thai+Looped:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
-body{margin:0;font-family:Arial,sans-serif;background:linear-gradient(-45deg,#0ea5e9,#2563eb,#06b6d4,#1e3a8a);background-size:400% 400%;animation:bg 12s ease infinite;color:#fff}
-@keyframes bg{0%{background-position:0 50%}50%{background-position:100% 50%}100%{background-position:0 50%}}
-nav{position:sticky;top:0;background:rgba(0,0,0,.3);padding:15px;text-align:center;backdrop-filter:blur(8px)}
-nav a{color:#fff;margin:0 12px;text-decoration:none}
-.hero{text-align:center;padding:70px 20px}
-.card{background:rgba(255,255,255,.12);backdrop-filter:blur(10px);margin:20px auto;max-width:900px;padding:25px;border-radius:16px;transition:.3s}
-.card:hover{transform:translateY(-6px);box-shadow:0 10px 25px rgba(0,0,0,.3)}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:15px}
-.item{background:rgba(255,255,255,.1);padding:15px;border-radius:12px}
-.progress{height:18px;background:#ffffff55;border-radius:20px;overflow:hidden}
-.bar{height:100%;width:68%;background:#22c55e;animation:load 3s}
-@keyframes load{from{width:0}to{width:68%}}
-footer{text-align:center;padding:25px}
-</style></head><body>
-<nav><a href="#about">เกี่ยวกับ</a><a href="#obj">วัตถุประสงค์</a><a href="#eq">อุปกรณ์</a><a href="#contact">ผู้จัดทำ</a></nav>
-<section class="hero"><h1>🌡️ Temperature Monitoring</h1><h3>ระบบตรวจวัดอุณหภูมิด้วย ESP32 CYD และ DHT22</h3><p id="clock"></p></section>
-<div class="card" id="about"><h2>ข้อมูลเบื้องต้น</h2><p>โครงงานนี้พัฒนาระบบตรวจวัดอุณหภูมิแบบเรียลไทม์ โดยใช้เซนเซอร์ DHT22 ร่วมกับบอร์ด ESP32 CYD เพื่ออ่านค่าอุณหภูมิและนำไปแสดงผล สามารถต่อยอดเป็นระบบ IoT สำหรับบ้าน โรงเรือน ห้องเซิร์ฟเวอร์ หรือห้องปฏิบัติการได้</p></div>
-<div class="card" id="obj"><h2>วัตถุประสงค์</h2><ul><li>ศึกษาการใช้งาน ESP32 CYD</li><li>ศึกษาการใช้งาน DHT22</li><li>พัฒนาระบบตรวจวัดอุณหภูมิ</li><li>แสดงผลข้อมูลแบบเข้าใจง่าย</li><li>ต่อยอดสู่ระบบ IoT</li></ul></div>
-<div class="card" id="eq"><h2>อุปกรณ์ที่ใช้</h2><div class="grid">
-<div class="item">ESP32 CYD</div><div class="item">DHT22 Sensor</div><div class="item">สาย Jumper</div><div class="item">USB Type-C</div></div>
-<h3>ตัวอย่างอุณหภูมิ</h3><div class="progress"><div class="bar"></div></div><p>27°C (ตัวอย่าง)</p></div>
-<div class="card"><h2>หลักการทำงาน</h2><ol><li>DHT22 วัดอุณหภูมิ</li><li>ส่งข้อมูลไปยัง GPIO27 ของ ESP32 CYD</li><li>ESP32 ประมวลผล</li><li>แสดงผลบนหน้าจอหรือเว็บ</li></ol></div>
-<div class="card"><h2>ประโยชน์</h2><p>ใช้เฝ้าระวังอุณหภูมิในบ้าน โรงงาน โรงเรือน ห้องเซิร์ฟเวอร์ และใช้เป็นสื่อการเรียนรู้ด้านไมโครคอนโทรลเลอร์และ IoT</p></div>
-<div class="card" id="contact"><h2>ผู้จัดทำ</h2><p><b>ชื่อโครงงาน:</b> Temperature Monitoring<br><b>จัดทำโดย:</b> ภาคภูมิ ทัพชุมพล<br><b>แผนก:</b> เทคโนโลยีคอมพิวเตอร์<br><b>วิทยาลัย:</b> วิทยาลัยเทคนิคตรัง</p></div>
-<footer>© 2026 Temperature Monitoring Project</footer>
+  :root{
+    --bg: #0b1210;
+    --panel: #101d19;
+    --panel-2: #142620;
+    --line: #23413a;
+    --line-soft: #1a2f29;
+    --copper: #c97c4b;
+    --copper-bright: #e8935c;
+    --text: #e8ede9;
+    --muted: #8fa79c;
+    --board-yellow: #d8b23c;
+    --board-yellow-dark: #a9871f;
+    --cold: #4fa6d8;
+    --hot: #e85d4a;
+  }
+
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Noto Sans Thai','Space Grotesk',sans-serif;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:var(--copper); color:#0b1210;}
+
+  .mono{font-family:'IBM Plex Mono','Noto Sans Thai',monospace;}
+
+  h1,h2,h3{
+    font-family:'Space Grotesk','Noto Sans Thai',sans-serif;
+    font-weight:600;
+    margin:0;
+    letter-spacing:-0.01em;
+  }
+
+  a{color:inherit;}
+
+  .wrap{
+    max-width:1080px;
+    margin:0 auto;
+    padding:0 28px;
+  }
+
+  /* subtle circuit-trace background texture */
+  .traces{
+    position:absolute; inset:0;
+    background-image:
+      linear-gradient(var(--line-soft) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line-soft) 1px, transparent 1px);
+    background-size: 42px 42px;
+    opacity:0.35;
+    mask-image: radial-gradient(ellipse 60% 60% at 70% 30%, black, transparent);
+    pointer-events:none;
+  }
+
+  /* ---------- HERO ---------- */
+  header.hero{
+    position:relative;
+    overflow:hidden;
+    border-bottom:1px solid var(--line);
+    padding:88px 0 72px;
+  }
+  .hero-grid{
+    position:relative;
+    display:grid;
+    grid-template-columns: 1.05fr 0.95fr;
+    gap:56px;
+    align-items:center;
+  }
+  .hero-tag{
+    font-size:14px;
+    color:var(--copper-bright);
+    margin:0 0 18px;
+  }
+  .hero h1{
+    font-size:clamp(32px, 4.4vw, 50px);
+    line-height:1.15;
+    margin-bottom:22px;
+  }
+  .hero p.lead{
+    color:var(--muted);
+    font-size:17px;
+    max-width:46ch;
+    margin-bottom:32px;
+  }
+  .btn-row{display:flex; gap:14px; flex-wrap:wrap;}
+  .btn{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding:13px 22px;
+    border-radius:3px;
+    font-size:15px;
+    font-weight:500;
+    text-decoration:none;
+    border:1px solid transparent;
+    cursor:pointer;
+    transition:background .15s ease, border-color .15s ease, color .15s ease;
+  }
+  .btn-primary{
+    background:var(--copper);
+    color:#0b1210;
+  }
+  .btn-primary:hover{background:var(--copper-bright);}
+  .btn-ghost{
+    border-color:var(--line);
+    color:var(--text);
+    background:transparent;
+  }
+  .btn-ghost:hover{border-color:var(--copper);}
+
+  /* ---------- DEVICE MOCKUP ---------- */
+  .device-card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:6px;
+    padding:26px;
+  }
+  .device-board{
+    background: linear-gradient(155deg, var(--board-yellow) 0%, var(--board-yellow-dark) 100%);
+    border-radius:8px;
+    padding:18px;
+    position:relative;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.15);
+  }
+  .device-board::before{
+    content:"ESP32-2432S028R";
+    position:absolute;
+    bottom:10px;
+    left:16px;
+    font-size:9px;
+    letter-spacing:0.04em;
+    color:rgba(0,0,0,0.45);
+    font-family:'IBM Plex Mono',monospace;
+  }
+  .screen{
+    background:#0a0f0d;
+    border-radius:3px;
+    padding:22px 20px 18px;
+    border:5px solid #1c1a12;
+    position:relative;
+  }
+  .screen-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    font-family:'IBM Plex Mono',monospace;
+    color:var(--muted);
+    font-size:11px;
+    margin-bottom:6px;
+  }
+  .screen-temp{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:56px;
+    font-weight:600;
+    line-height:1;
+    color:var(--copper-bright);
+    transition:color .2s ease;
+  }
+  .screen-temp .unit{font-size:22px; color:var(--muted);}
+  .screen-hum{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:14px;
+    color:var(--cold);
+    margin-top:6px;
+  }
+  .screen-status{
+    margin-top:14px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    padding:6px 10px;
+    border-radius:2px;
+    display:inline-block;
+    border:1px solid var(--line);
+    color:var(--muted);
+  }
+  .gauge-bar{
+    margin-top:16px;
+    height:6px;
+    border-radius:3px;
+    background:linear-gradient(90deg, var(--cold), #6ec98a 45%, var(--copper-bright) 70%, var(--hot));
+    position:relative;
+  }
+  .gauge-dot{
+    position:absolute;
+    top:50%;
+    width:12px; height:12px;
+    background:var(--text);
+    border-radius:50%;
+    transform:translate(-50%,-50%);
+    box-shadow:0 0 0 3px rgba(0,0,0,0.5);
+    transition:left .12s ease;
+  }
+  .dht-chip{
+    position:absolute;
+    top:16px; right:16px;
+    background:#1a1a1a;
+    color:#cfd8d4;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:9px;
+    padding:5px 7px;
+    border-radius:2px;
+    text-align:center;
+    line-height:1.3;
+  }
+
+  .slider-block{
+    margin-top:22px;
+    padding-top:20px;
+    border-top:1px dashed var(--line);
+  }
+  .slider-label{
+    display:flex;
+    justify-content:space-between;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    color:var(--muted);
+    margin-bottom:10px;
+  }
+  input[type=range]{
+    width:100%;
+    accent-color:var(--copper);
+  }
+  .hint{font-size:12.5px; color:var(--muted); margin-top:10px;}
+
+  /* ---------- SECTIONS ---------- */
+  section{padding:76px 0; border-bottom:1px solid var(--line);}
+  .section-head{
+    display:grid;
+    grid-template-columns: 1fr 1.6fr;
+    gap:40px;
+    margin-bottom:40px;
+  }
+  .section-head h2{font-size:28px;}
+  .section-head .num{
+    font-family:'IBM Plex Mono',monospace;
+    color:var(--copper);
+    font-size:13px;
+  }
+  .section-head p{color:var(--muted); margin:0; max-width:60ch;}
+
+  /* about */
+  .about-body{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:36px;
+  }
+  .about-body .col p{color:var(--muted); font-size:15.5px;}
+  .about-body h3{font-size:17px; margin-bottom:10px; color:var(--text);}
+
+  /* datasheet table */
+  .datasheet{
+    width:100%;
+    border-collapse:collapse;
+    font-size:14.5px;
+  }
+  .datasheet caption{
+    text-align:left;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    color:var(--copper-bright);
+    margin-bottom:10px;
+  }
+  .datasheet th, .datasheet td{
+    text-align:left;
+    padding:11px 14px;
+    border-bottom:1px solid var(--line-soft);
+  }
+  .datasheet th{
+    color:var(--muted);
+    font-weight:500;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    width:34%;
+  }
+  .datasheet td{color:var(--text);}
+  .sheets{display:grid; grid-template-columns:1fr 1fr; gap:44px;}
+
+  /* wiring */
+  .wiring-wrap{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:6px;
+    padding:24px;
+  }
+  .pin-legend{
+    display:flex;
+    gap:22px;
+    flex-wrap:wrap;
+    margin-top:18px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12.5px;
+    color:var(--muted);
+  }
+  .pin-legend span{display:inline-flex; align-items:center; gap:7px;}
+  .dot{width:10px; height:10px; border-radius:50%; display:inline-block;}
+
+  /* code block */
+  .code-block{
+    background:#0a0f0d;
+    border:1px solid var(--line);
+    border-radius:6px;
+    padding:22px 24px;
+    overflow-x:auto;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:13px;
+    line-height:1.7;
+    color:#c9d3cd;
+  }
+  .code-block .kw{color:#c97c4b;}
+  .code-block .fn{color:#7fb8d8;}
+  .code-block .str{color:#9bc98a;}
+  .code-block .cm{color:#5c7168;}
+  .code-file{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    color:var(--muted);
+    margin-bottom:10px;
+  }
+
+  /* footer */
+  footer{padding:44px 0; }
+  footer .wrap{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    flex-wrap:wrap;
+    gap:24px;
+  }
+  footer .mono{color:var(--muted); font-size:12.5px;}
+  .credit-title{
+    font-family:'Space Grotesk','Noto Sans Thai',sans-serif;
+    font-size:16px;
+    color:var(--text);
+    margin-bottom:8px;
+  }
+  .credit-list{
+    font-family:'IBM Plex Mono','Noto Sans Thai',monospace;
+    font-size:13px;
+    color:var(--muted);
+    line-height:1.8;
+  }
+  .credit-list b{color:var(--copper-bright); font-weight:500;}
+
+  @media (max-width: 820px){
+    .hero-grid{grid-template-columns:1fr;}
+    .section-head{grid-template-columns:1fr;}
+    .about-body{grid-template-columns:1fr;}
+    .sheets{grid-template-columns:1fr;}
+    header.hero{padding:56px 0 48px;}
+    section{padding:56px 0;}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="traces"></div>
+  <div class="wrap hero-grid">
+    <div>
+      <p class="hero-tag mono">โครงงานเซนเซอร์ · DHT11 + ESP32 CYD</p>
+      <h1>วัดอุณหภูมิและความชื้น<br>แบบเรียลไทม์ บนจอสัมผัส</h1>
+      <p class="lead">อ่านค่าจากเซนเซอร์ DHT11 ด้วยบอร์ด ESP32 CYD แล้วแสดงผลอุณหภูมิและความชื้นทันทีบนจอ TFT ในตัว ไม่ต้องต่อจอแยก ไม่ต้องเขียนโค้ดแสดงผลซับซ้อน</p>
+      <p class="mono" style="color:var(--muted); font-size:13px; margin:-16px 0 28px;">โดย ภาคภูมิ ทัพชุมพล · แผนกเทคโนโลยีคอมพิวเตอร์ วิทยาลัยเทคนิคตรัง</p>
+      <div class="btn-row">
+        <a href="#wiring" class="btn btn-primary">ดูวิธีต่อวงจร</a>
+        <a href="#code" class="btn btn-ghost">ดูโค้ดตัวอย่าง</a>
+      </div>
+    </div>
+
+    <div class="device-card">
+      <div class="device-board">
+        <span class="dht-chip">DHT11<br>1&nbsp;·&nbsp;2&nbsp;·&nbsp;3</span>
+        <div class="screen">
+          <div class="screen-row"><span>SENSOR: DHT11</span><span id="statusTime">อัปเดตล่าสุด · ตอนนี้</span></div>
+          <div class="screen-temp" id="tempDisplay">27.4<span class="unit">°C</span></div>
+          <div class="screen-hum" id="humDisplay">ความชื้น 58% RH</div>
+          <div class="gauge-bar"><div class="gauge-dot" id="gaugeDot"></div></div>
+          <span class="screen-status" id="statusChip">อุณหภูมิปกติ</span>
+        </div>
+      </div>
+
+      <div class="slider-block">
+        <div class="slider-label">
+          <span>จำลองค่าจากเซนเซอร์</span>
+          <span id="sliderVal" class="mono">27°C</span>
+        </div>
+        <input type="range" min="0" max="45" value="27" id="tempSlider">
+        <p class="hint">ลองเลื่อน เพื่อดูว่าจอของ ESP32 CYD จะแสดงผลอย่างไรเมื่อค่าจากเซนเซอร์เปลี่ยน</p>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section id="about">
+  <div class="wrap">
+    <div class="section-head">
+      <p class="num">01 — เกี่ยวกับโครงงาน</p>
+      <div>
+        <h2>เซนเซอร์ตัวเล็ก จอในตัว ครบในบอร์ดเดียว</h2>
+        <p>โครงงานนี้ใช้อุปกรณ์เพียงสองชิ้นหลัก คือเซนเซอร์วัดสภาพอากาศราคาประหยัด และบอร์ดพัฒนาที่มีจอแสดงผลติดมาให้แล้ว จึงเหมาะสำหรับผู้เริ่มต้นที่อยากทำสถานีวัดอุณหภูมิของตัวเอง</p>
+      </div>
+    </div>
+
+    <div class="about-body">
+      <div class="col">
+        <h3>DHT11 — เซนเซอร์วัดอุณหภูมิ/ความชื้น</h3>
+        <p>เซนเซอร์ดิจิทัลราคาถูก วัดได้ทั้งอุณหภูมิและความชื้นในตัวเดียว ส่งค่าออกมาเป็นสัญญาณดิจิทัลผ่านขาเดียว จึงต่อสายง่าย เหมาะกับงานที่ไม่ต้องการความละเอียดสูงมาก เช่น สถานีอากาศในบ้าน หรือระบบแจ้งเตือนอุณหภูมิห้อง</p>
+      </div>
+      <div class="col">
+        <h3>ESP32 CYD — บอร์ดพร้อมจอในตัว</h3>
+        <p>ชื่อเล่นของบอร์ด ESP32-2432S028R ซึ่งมีจอสัมผัส TFT ขนาด 2.8 นิ้วติดตั้งมาพร้อมแผงวงจร ทำให้แสดงผลค่าที่อ่านได้จากเซนเซอร์ได้ทันทีโดยไม่ต้องต่อจอเพิ่ม และยังเชื่อมต่อ Wi-Fi เพื่อส่งข้อมูลออนไลน์ได้ในอนาคต</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="components">
+  <div class="wrap">
+    <div class="section-head">
+      <p class="num">02 — อุปกรณ์ที่ใช้</p>
+      <div>
+        <h2>สเปกของอุปกรณ์หลัก</h2>
+        <p>ข้อมูลจำเพาะที่ใช้อ้างอิงตอนต่อวงจรและเขียนโค้ด</p>
+      </div>
+    </div>
+
+    <div class="sheets">
+      <table class="datasheet">
+        <caption>DHT11 · เซนเซอร์วัดอุณหภูมิ/ความชื้น</caption>
+        <tr><th>ช่วงอุณหภูมิ</th><td>0–50°C (±2°C)</td></tr>
+        <tr><th>ช่วงความชื้น</th><td>20–90% RH (±5%)</td></tr>
+        <tr><th>แรงดันไฟเลี้ยง</th><td>3.3–5.5 V</td></tr>
+        <tr><th>รูปแบบสัญญาณ</th><td>Digital, single-wire</td></tr>
+        <tr><th>อัตราการอ่านค่า</th><td>~1 ครั้ง/วินาที</td></tr>
+      </table>
+
+      <table class="datasheet">
+        <caption>ESP32-2432S028R (ESP32 CYD)</caption>
+        <tr><th>ชิปหลัก</th><td>ESP32-WROOM-32</td></tr>
+        <tr><th>จอแสดงผล</th><td>TFT 2.8" ILI9341, 320×240</td></tr>
+        <tr><th>ระบบสัมผัส</th><td>Resistive, XPT2046</td></tr>
+        <tr><th>การเชื่อมต่อ</th><td>Wi-Fi, Bluetooth</td></tr>
+        <tr><th>ไฟเข้าบอร์ด</th><td>5V ผ่าน Micro-USB</td></tr>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section id="wiring">
+  <div class="wrap">
+    <div class="section-head">
+      <p class="num">03 — วงจรการเชื่อมต่อ</p>
+      <div>
+        <h2>ต่อสาย 3 เส้น ก็เริ่มอ่านค่าได้</h2>
+        <p>DHT11 มีเพียง 3 ขา จึงต่อเข้ากับหัวต่อ GPIO ของ ESP32 CYD ได้โดยตรง ไม่ต้องใช้เบรดบอร์ดเพิ่ม</p>
+      </div>
+    </div>
+
+    <div class="wiring-wrap">
+      <svg viewBox="0 0 760 300" width="100%" style="max-height:320px;">
+        <!-- DHT11 module -->
+        <rect x="40" y="90" width="130" height="120" rx="6" fill="#142620" stroke="#23413a"/>
+        <text x="105" y="75" text-anchor="middle" fill="#e8ede9" font-family="IBM Plex Mono" font-size="14">DHT11</text>
+        <rect x="70" y="120" width="70" height="60" rx="3" fill="#0a0f0d" stroke="#23413a"/>
+        <circle cx="105" y="105" cy="140" r="0"/>
+        <text x="105" y="155" text-anchor="middle" fill="#5c7168" font-family="IBM Plex Mono" font-size="10">sensor</text>
+
+        <!-- DHT11 pins -->
+        <circle cx="170" cy="130" r="5" fill="#e85d4a"/>
+        <circle cx="170" cy="150" r="5" fill="#e8c93c"/>
+        <circle cx="170" cy="170" r="5" fill="#8fa79c"/>
+        <text x="182" y="134" fill="#8fa79c" font-family="IBM Plex Mono" font-size="11">VCC</text>
+        <text x="182" y="154" fill="#8fa79c" font-family="IBM Plex Mono" font-size="11">DATA</text>
+        <text x="182" y="174" fill="#8fa79c" font-family="IBM Plex Mono" font-size="11">GND</text>
+
+        <!-- wires -->
+        <path d="M170 130 L 470 60" stroke="#e85d4a" stroke-width="2" fill="none"/>
+        <path d="M170 150 L 470 150" stroke="#e8c93c" stroke-width="2" fill="none"/>
+        <path d="M170 170 L 470 235" stroke="#8fa79c" stroke-width="2" fill="none"/>
+
+        <!-- ESP32 CYD board -->
+        <rect x="470" y="40" width="250" height="220" rx="8" fill="#a9871f"/>
+        <rect x="470" y="40" width="250" height="220" rx="8" fill="url(#boardGrad)"/>
+        <defs>
+          <linearGradient id="boardGrad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#d8b23c"/>
+            <stop offset="1" stop-color="#a9871f"/>
+          </linearGradient>
+        </defs>
+        <rect x="500" y="70" width="150" height="110" rx="3" fill="#0a0f0d"/>
+        <text x="575" y="130" text-anchor="middle" fill="#e8935c" font-family="IBM Plex Mono" font-size="20">27.4°C</text>
+        <text x="710" y="255" text-anchor="end" fill="rgba(0,0,0,0.45)" font-family="IBM Plex Mono" font-size="9">ESP32 CYD</text>
+
+        <!-- header pins on board edge -->
+        <circle cx="470" cy="60" r="5" fill="#e85d4a"/>
+        <circle cx="470" cy="150" r="5" fill="#e8c93c"/>
+        <circle cx="470" cy="235" r="5" fill="#8fa79c"/>
+        <text x="458" y="52" text-anchor="end" fill="#e8ede9" font-family="IBM Plex Mono" font-size="11">3V3</text>
+        <text x="458" y="146" text-anchor="end" fill="#e8ede9" font-family="IBM Plex Mono" font-size="11">GPIO22</text>
+        <text x="458" y="248" text-anchor="end" fill="#e8ede9" font-family="IBM Plex Mono" font-size="11">GND</text>
+      </svg>
+
+      <div class="pin-legend">
+        <span><span class="dot" style="background:#e85d4a;"></span> VCC → 3V3</span>
+        <span><span class="dot" style="background:#e8c93c;"></span> DATA → GPIO22</span>
+        <span><span class="dot" style="background:#8fa79c;"></span> GND → GND</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="code">
+  <div class="wrap">
+    <div class="section-head">
+      <p class="num">04 — โค้ดตัวอย่าง</p>
+      <div>
+        <h2>อ่านค่าเซนเซอร์แล้วแสดงบนจอ</h2>
+        <p>ใช้ไลบรารี <span class="mono">DHT sensor library</span> อ่านค่า และ <span class="mono">TFT_eSPI</span> วาดผลลัพธ์บนจอของบอร์ด</p>
+      </div>
+    </div>
+
+    <div class="code-file">sensor_display.ino</div>
+    <div class="code-block"><span class="cm">// อ่านค่าจาก DHT11 แล้วแสดงบนจอ ESP32 CYD</span>
+<span class="kw">#include</span> &lt;DHT.h&gt;
+<span class="kw">#include</span> &lt;TFT_eSPI.h&gt;
+
+<span class="kw">#define</span> DHTPIN   22
+<span class="kw">#define</span> DHTTYPE  DHT11
+
+DHT dht(DHTPIN, DHTTYPE);
+TFT_eSPI tft = TFT_eSPI();
+
+<span class="kw">void</span> <span class="fn">setup</span>() {
+  dht.begin();
+  tft.init();
+  tft.setRotation(1);
+  tft.fillScreen(TFT_BLACK);
+}
+
+<span class="kw">void</span> <span class="fn">loop</span>() {
+  <span class="kw">float</span> temp = dht.readTemperature();
+  <span class="kw">float</span> hum  = dht.readHumidity();
+
+  <span class="kw">if</span> (isnan(temp) || isnan(hum)) {
+    tft.drawString(<span class="str">"อ่านค่าเซนเซอร์ไม่สำเร็จ"</span>, 20, 20, 2);
+    <span class="kw">return</span>;
+  }
+
+  tft.fillScreen(TFT_BLACK);
+  tft.setTextColor(TFT_ORANGE);
+  tft.drawString(String(temp, 1) + <span class="str">" C"</span>, 20, 40, 6);
+  tft.setTextColor(TFT_CYAN);
+  tft.drawString(<span class="str">"ความชื้น "</span> + String(hum, 0) + <span class="str">"%"</span>, 20, 110, 4);
+
+  delay(2000);
+}</div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div>
+      <p class="credit-title">โครงงานเซนเซอร์วัดอุณหภูมิ</p>
+      <p class="credit-list">
+        จัดทำโดย <b>นายภาคภูมิ ทัพชุมพล</b><br>
+        แผนกเทคโนโลยีคอมพิวเตอร์<br>
+        วิทยาลัยเทคนิคตรัง
+      </p>
+    </div>
+    <span class="mono">DHT11 + ESP32 CYD · จัดทำเพื่อการศึกษา</span>
+  </div>
+</footer>
+
 <script>
-function t(){document.getElementById('clock').innerText='วันที่และเวลา: '+new Date().toLocaleString('th-TH')}
-setInterval(t,1000);t();
-</script></body></html>
+  const slider = document.getElementById('tempSlider');
+  const sliderVal = document.getElementById('sliderVal');
+  const tempDisplay = document.getElementById('tempDisplay');
+  const humDisplay = document.getElementById('humDisplay');
+  const statusChip = document.getElementById('statusChip');
+  const gaugeDot = document.getElementById('gaugeDot');
+
+  function coldHotColor(t){
+    // 0 -> cold blue, 22 -> green-ish, 45 -> hot red, interpolate via hex mix
+    const stops = [
+      {t:0, c:[79,166,216]},
+      {t:22, c:[110,201,138]},
+      {t:32, c:[232,147,92]},
+      {t:45, c:[232,93,74]}
+    ];
+    let lo = stops[0], hi = stops[stops.length-1];
+    for(let i=0;i<stops.length-1;i++){
+      if(t >= stops[i].t && t <= stops[i+1].t){ lo = stops[i]; hi = stops[i+1]; break; }
+    }
+    const span = (hi.t - lo.t) || 1;
+    const f = Math.max(0, Math.min(1, (t - lo.t)/span));
+    const c = lo.c.map((v,i) => Math.round(v + (hi.c[i]-v)*f));
+    return `rgb(${c[0]},${c[1]},${c[2]})`;
+  }
+
+  function update(t){
+    const temp = parseInt(t,10);
+    const hum = Math.max(20, Math.min(90, 80 - temp)); // simple inverse-ish relation for demo
+    sliderVal.textContent = temp + '°C';
+    tempDisplay.innerHTML = temp.toFixed(1) + '<span class="unit">°C</span>';
+    tempDisplay.style.color = coldHotColor(temp);
+    humDisplay.textContent = 'ความชื้น ' + hum + '% RH';
+
+    const pct = Math.max(0, Math.min(100, (temp/45)*100));
+    gaugeDot.style.left = pct + '%';
+
+    let status = 'อุณหภูมิปกติ';
+    if(temp <= 15) status = 'อากาศเย็น';
+    else if(temp >= 33) status = 'อากาศร้อน';
+    statusChip.textContent = status;
+  }
+
+  slider.addEventListener('input', (e) => update(e.target.value));
+  update(slider.value);
+</script>
+
+</body>
+</html>
