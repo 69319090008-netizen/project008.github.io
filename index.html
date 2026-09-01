@@ -313,11 +313,15 @@
     border-radius:6px;
     padding:22px 24px;
     overflow-x:auto;
+    max-height:560px;
+    overflow-y:auto;
     font-family:'IBM Plex Mono',monospace;
     font-size:13px;
     line-height:1.7;
     color:#c9d3cd;
   }
+  .code-block .ty{color:#7fb8d8;}
+  .code-block .const{color:#e8935c;}
   .code-block .kw{color:#c97c4b;}
   .code-block .fn{color:#7fb8d8;}
   .code-block .str{color:#9bc98a;}
@@ -527,44 +531,355 @@
       <p class="num">04 — โค้ดตัวอย่าง</p>
       <div>
         <h2>อ่านค่าเซนเซอร์แล้วแสดงบนจอ</h2>
-        <p>ใช้ไลบรารี <span class="mono">DHT sensor library</span> อ่านค่า และ <span class="mono">TFT_eSPI</span> วาดผลลัพธ์บนจอของบอร์ด</p>
+        <p>ใช้ไลบรารี <span class="mono">DHT sensor library</span> อ่านอุณหภูมิ และ <span class="mono">LovyanGFX</span> วาดผลลัพธ์บนจอ ILI9341 ของบอร์ด ESP32 CYD โดยตั้งค่าขา SPI ของจอและขา DATA ของ DHT11 ไว้ที่ GPIO22</p>
       </div>
     </div>
 
-    <div class="code-file">sensor_display.ino</div>
-    <div class="code-block"><span class="cm">// อ่านค่าจาก DHT11 แล้วแสดงบนจอ ESP32 CYD</span>
+    <div class="code-file">esp32_cyd_dht11.ino</div>
+    <div class="code-block"><span class="kw">#include</span> &lt;Arduino.h&gt;
+<span class="kw">#include</span> &lt;LovyanGFX.hpp&gt;
 <span class="kw">#include</span> &lt;DHT.h&gt;
-<span class="kw">#include</span> &lt;TFT_eSPI.h&gt;
+<span class="kw">#include</span> &lt;math.h&gt;
 
-<span class="kw">#define</span> DHTPIN   22
-<span class="kw">#define</span> DHTTYPE  DHT11
+<span class="cm">// =====================================================
+// ตั้งค่า DHT11
+// =====================================================</span>
 
-DHT dht(DHTPIN, DHTTYPE);
-TFT_eSPI tft = TFT_eSPI();
+<span class="kw">static</span> <span class="kw">constexpr</span> <span class="ty">uint8_t</span> DHT_PIN = 22;
+<span class="kw">#define</span> DHT_TYPE DHT11
 
-<span class="kw">void</span> <span class="fn">setup</span>() {
-  dht.begin();
-  tft.init();
-  tft.setRotation(1);
-  tft.fillScreen(TFT_BLACK);
-}
+DHT dht(DHT_PIN, DHT_TYPE);
 
-<span class="kw">void</span> <span class="fn">loop</span>() {
-  <span class="kw">float</span> temp = dht.readTemperature();
-  <span class="kw">float</span> hum  = dht.readHumidity();
+<span class="cm">// DHT11 ไม่ควรอ่านถี่กว่า 2 วินาที</span>
+<span class="kw">static</span> <span class="kw">constexpr</span> <span class="kw">unsigned</span> <span class="kw">long</span> SENSOR_INTERVAL = 2500;
+<span class="kw">unsigned</span> <span class="kw">long</span> previousSensorTime = 0;
 
-  <span class="kw">if</span> (isnan(temp) || isnan(hum)) {
-    tft.drawString(<span class="str">"อ่านค่าเซนเซอร์ไม่สำเร็จ"</span>, 20, 20, 2);
-    <span class="kw">return</span>;
+<span class="cm">// =====================================================
+// ตั้งค่าจอ ESP32-2432S028R CYD
+// จอ ILI9341 ขนาด 2.8 นิ้ว
+// =====================================================</span>
+
+<span class="kw">class</span> LGFX : <span class="kw">public</span> lgfx::LGFX_Device
+{
+<span class="kw">private</span>:
+  lgfx::Panel_ILI9341 panel;
+  lgfx::Bus_SPI bus;
+  lgfx::Light_PWM backlight;
+
+<span class="kw">public</span>:
+  <span class="fn">LGFX</span>()
+  {
+    <span class="cm">// ตั้งค่า SPI ของจอ</span>
+    {
+      <span class="kw">auto</span> config = bus.config();
+
+      config.spi_host = VSPI_HOST;
+      config.spi_mode = 0;
+      config.freq_write = 40000000;
+      config.freq_read = 16000000;
+      config.spi_3wire = <span class="kw">false</span>;
+      config.use_lock = <span class="kw">true</span>;
+      config.dma_channel = 1;
+
+      config.pin_sclk = 14;
+      config.pin_mosi = 13;
+      config.pin_miso = 12;
+      config.pin_dc = 2;
+
+      bus.config(config);
+      panel.setBus(&amp;bus);
+    }
+
+    <span class="cm">// ตั้งค่าจอ ILI9341</span>
+    {
+      <span class="kw">auto</span> config = panel.config();
+
+      config.pin_cs = 15;
+      config.pin_rst = -1;
+      config.pin_busy = -1;
+
+      config.memory_width = 240;
+      config.memory_height = 320;
+      config.panel_width = 240;
+      config.panel_height = 320;
+
+      config.offset_x = 0;
+      config.offset_y = 0;
+      config.offset_rotation = 0;
+
+      config.readable = <span class="kw">true</span>;
+      config.invert = <span class="kw">false</span>;
+      config.rgb_order = <span class="kw">false</span>;
+      config.dlen_16bit = <span class="kw">false</span>;
+      config.bus_shared = <span class="kw">true</span>;
+
+      panel.config(config);
+    }
+
+    <span class="cm">// ตั้งค่าไฟหน้าจอ</span>
+    {
+      <span class="kw">auto</span> config = backlight.config();
+
+      config.pin_bl = 21;
+      config.invert = <span class="kw">false</span>;
+      config.freq = 44100;
+      config.pwm_channel = 7;
+
+      backlight.config(config);
+      panel.setLight(&amp;backlight);
+    }
+
+    setPanel(&amp;panel);
+  }
+};
+
+LGFX display;
+
+<span class="cm">// =====================================================
+// เลือกสีตามอุณหภูมิ
+// =====================================================</span>
+
+<span class="ty">uint16_t</span> <span class="fn">getTemperatureColor</span>(<span class="kw">float</span> temperature)
+{
+  <span class="kw">if</span> (temperature &lt; 20.0f)
+  {
+    <span class="kw">return</span> TFT_CYAN;
   }
 
-  tft.fillScreen(TFT_BLACK);
-  tft.setTextColor(TFT_ORANGE);
-  tft.drawString(String(temp, 1) + <span class="str">" C"</span>, 20, 40, 6);
-  tft.setTextColor(TFT_CYAN);
-  tft.drawString(<span class="str">"ความชื้น "</span> + String(hum, 0) + <span class="str">"%"</span>, 20, 110, 4);
+  <span class="kw">if</span> (temperature &lt; 30.0f)
+  {
+    <span class="kw">return</span> TFT_GREEN;
+  }
 
+  <span class="kw">if</span> (temperature &lt; 40.0f)
+  {
+    <span class="kw">return</span> TFT_YELLOW;
+  }
+
+  <span class="kw">return</span> TFT_RED;
+}
+
+<span class="cm">// =====================================================
+// วาดโครงหน้าจอ
+// =====================================================</span>
+
+<span class="kw">void</span> <span class="fn">drawScreenLayout</span>()
+{
+  display.fillScreen(TFT_BLACK);
+
+  <span class="cm">// แถบหัวข้อด้านบน</span>
+  display.fillRect(0, 0, 320, 42, TFT_DARKCYAN);
+
+  display.setTextDatum(textdatum_t::middle_center);
+  display.setTextColor(TFT_WHITE, TFT_DARKCYAN);
+  display.setTextSize(2);
+  display.drawString(
+    <span class="str">"TEMPERATURE"</span>,
+    160,
+    21
+  );
+
+  <span class="cm">// กรอบแสดงอุณหภูมิ</span>
+  display.drawRoundRect(
+    10,
+    55,
+    300,
+    135,
+    12,
+    TFT_RED
+  );
+
+  <span class="cm">// ป้าย TEMPERATURE</span>
+  display.setTextDatum(textdatum_t::top_left);
+  display.setTextSize(1);
+  display.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
+  display.drawString(
+    <span class="str">"DHT11 TEMPERATURE"</span>,
+    22,
+    66
+  );
+
+  <span class="cm">// ข้อความด้านล่าง</span>
+  display.setTextDatum(textdatum_t::middle_center);
+  display.setTextSize(1);
+  display.setTextColor(TFT_ORANGE, TFT_BLACK);
+  display.drawString(
+    <span class="str">"DHT11 DATA: GPIO22"</span>,
+    160,
+    218
+  );
+}
+
+<span class="cm">// =====================================================
+// ล้างพื้นที่แสดงอุณหภูมิ
+// =====================================================</span>
+
+<span class="kw">void</span> <span class="fn">clearTemperatureArea</span>()
+{
+  display.fillRect(
+    17,
+    88,
+    286,
+    85,
+    TFT_BLACK
+  );
+}
+
+<span class="cm">// =====================================================
+// แสดงข้อความระหว่างเริ่มต้น
+// =====================================================</span>
+
+<span class="kw">void</span> <span class="fn">showStartingMessage</span>()
+{
+  clearTemperatureArea();
+
+  display.setTextDatum(textdatum_t::middle_center);
+
+  display.setTextSize(2);
+  display.setTextColor(TFT_YELLOW, TFT_BLACK);
+  display.drawString(
+    <span class="str">"Starting..."</span>,
+    160,
+    115
+  );
+
+  display.setTextSize(1);
+  display.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
+  display.drawString(
+    <span class="str">"Waiting for DHT11"</span>,
+    160,
+    148
+  );
+}
+
+<span class="cm">// =====================================================
+// แสดงค่าอุณหภูมิบนหน้าจอ
+// =====================================================</span>
+
+<span class="kw">void</span> <span class="fn">updateDisplay</span>(<span class="kw">float</span> temperature)
+{
+  clearTemperatureArea();
+
+  <span class="ty">uint16_t</span> temperatureColor =
+    getTemperatureColor(temperature);
+
+  display.setTextDatum(textdatum_t::middle_center);
+  display.setTextSize(4);
+  display.setTextColor(
+    temperatureColor,
+    TFT_BLACK
+  );
+
+  display.drawString(
+    String(temperature, 1) + <span class="str">" C"</span>,
+    160,
+    128
+  );
+}
+
+<span class="cm">// =====================================================
+// แสดงข้อผิดพลาดของเซ็นเซอร์
+// =====================================================</span>
+
+<span class="kw">void</span> <span class="fn">showSensorError</span>()
+{
+  clearTemperatureArea();
+
+  display.setTextDatum(textdatum_t::middle_center);
+
+  display.setTextSize(2);
+  display.setTextColor(TFT_RED, TFT_BLACK);
+  display.drawString(
+    <span class="str">"READ ERROR"</span>,
+    160,
+    112
+  );
+
+  display.setTextSize(1);
+  display.setTextColor(TFT_YELLOW, TFT_BLACK);
+  display.drawString(
+    <span class="str">"Check DHT11 wiring"</span>,
+    160,
+    142
+  );
+
+  display.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
+  display.drawString(
+    <span class="str">"DATA = GPIO22"</span>,
+    160,
+    160
+  );
+}
+
+<span class="cm">// =====================================================
+// แสดงอุณหภูมิใน Serial Monitor
+// =====================================================</span>
+
+<span class="kw">void</span> <span class="fn">printSerialData</span>(<span class="kw">float</span> temperature)
+{
+  Serial.print(<span class="str">"Temperature: "</span>);
+  Serial.print(temperature, 1);
+  Serial.println(<span class="str">" C"</span>);
+}
+
+<span class="cm">// =====================================================
+// Setup
+// =====================================================</span>
+
+<span class="kw">void</span> <span class="fn">setup</span>()
+{
+  Serial.begin(115200);
+  delay(500);
+
+  <span class="cm">// เริ่มต้นหน้าจอ</span>
+  display.init();
+  display.setRotation(1);
+  display.setBrightness(255);
+
+  drawScreenLayout();
+  showStartingMessage();
+
+  <span class="cm">// เริ่มต้น DHT11</span>
+  dht.begin();
+
+  Serial.println();
+  Serial.println(<span class="str">"ESP32 CYD + DHT11 Temperature Monitor"</span>);
+  Serial.println(<span class="str">"DHT11 DATA pin: GPIO22"</span>);
+  Serial.println(<span class="str">"Waiting for sensor..."</span>);
+
+  <span class="cm">// รอเซ็นเซอร์เริ่มทำงาน</span>
   delay(2000);
+
+  <span class="cm">// ทำให้อ่านค่าทันทีเมื่อเข้า loop</span>
+  previousSensorTime = millis() - SENSOR_INTERVAL;
+}
+
+<span class="cm">// =====================================================
+// Loop
+// =====================================================</span>
+
+<span class="kw">void</span> <span class="fn">loop</span>()
+{
+  <span class="kw">unsigned</span> <span class="kw">long</span> currentTime = millis();
+
+  <span class="kw">if</span> (currentTime - previousSensorTime &gt;= SENSOR_INTERVAL)
+  {
+    previousSensorTime = currentTime;
+
+    <span class="cm">// อ่านเฉพาะอุณหภูมิ</span>
+    <span class="kw">float</span> temperature = dht.readTemperature();
+
+    <span class="cm">// ตรวจสอบว่าอ่านค่าสำเร็จหรือไม่</span>
+    <span class="kw">if</span> (isnan(temperature))
+    {
+      Serial.println(<span class="str">"อ่านอุณหภูมิ DHT11 ไม่สำเร็จ"</span>);
+      showSensorError();
+      <span class="kw">return</span>;
+    }
+
+    printSerialData(temperature);
+    updateDisplay(temperature);
+  }
 }</div>
   </div>
 </section>
