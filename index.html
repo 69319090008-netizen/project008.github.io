@@ -1,12 +1,33 @@
 <!DOCTYPE html>
-<html>
-<head>
-<title>project Temperature Monitoring</title>
-</head>
-<body>
-
-<h1>Pakpoom</h1>
-<p>My first paragraph.</p>
-
-</body>
-</html>
+<html lang="th"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Temperature Monitoring</title>
+<style>
+body{margin:0;font-family:Arial,sans-serif;background:linear-gradient(-45deg,#0ea5e9,#2563eb,#06b6d4,#1e3a8a);background-size:400% 400%;animation:bg 12s ease infinite;color:#fff}
+@keyframes bg{0%{background-position:0 50%}50%{background-position:100% 50%}100%{background-position:0 50%}}
+nav{position:sticky;top:0;background:rgba(0,0,0,.3);padding:15px;text-align:center;backdrop-filter:blur(8px)}
+nav a{color:#fff;margin:0 12px;text-decoration:none}
+.hero{text-align:center;padding:70px 20px}
+.card{background:rgba(255,255,255,.12);backdrop-filter:blur(10px);margin:20px auto;max-width:900px;padding:25px;border-radius:16px;transition:.3s}
+.card:hover{transform:translateY(-6px);box-shadow:0 10px 25px rgba(0,0,0,.3)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:15px}
+.item{background:rgba(255,255,255,.1);padding:15px;border-radius:12px}
+.progress{height:18px;background:#ffffff55;border-radius:20px;overflow:hidden}
+.bar{height:100%;width:68%;background:#22c55e;animation:load 3s}
+@keyframes load{from{width:0}to{width:68%}}
+footer{text-align:center;padding:25px}
+</style></head><body>
+<nav><a href="#about">เกี่ยวกับ</a><a href="#obj">วัตถุประสงค์</a><a href="#eq">อุปกรณ์</a><a href="#contact">ผู้จัดทำ</a></nav>
+<section class="hero"><h1>🌡️ Temperature Monitoring</h1><h3>ระบบตรวจวัดอุณหภูมิด้วย ESP32 CYD และ DHT22</h3><p id="clock"></p></section>
+<div class="card" id="about"><h2>ข้อมูลเบื้องต้น</h2><p>โครงงานนี้พัฒนาระบบตรวจวัดอุณหภูมิแบบเรียลไทม์ โดยใช้เซนเซอร์ DHT22 ร่วมกับบอร์ด ESP32 CYD เพื่ออ่านค่าอุณหภูมิและนำไปแสดงผล สามารถต่อยอดเป็นระบบ IoT สำหรับบ้าน โรงเรือน ห้องเซิร์ฟเวอร์ หรือห้องปฏิบัติการได้</p></div>
+<div class="card" id="obj"><h2>วัตถุประสงค์</h2><ul><li>ศึกษาการใช้งาน ESP32 CYD</li><li>ศึกษาการใช้งาน DHT22</li><li>พัฒนาระบบตรวจวัดอุณหภูมิ</li><li>แสดงผลข้อมูลแบบเข้าใจง่าย</li><li>ต่อยอดสู่ระบบ IoT</li></ul></div>
+<div class="card" id="eq"><h2>อุปกรณ์ที่ใช้</h2><div class="grid">
+<div class="item">ESP32 CYD</div><div class="item">DHT22 Sensor</div><div class="item">สาย Jumper</div><div class="item">USB Type-C</div></div>
+<h3>ตัวอย่างอุณหภูมิ</h3><div class="progress"><div class="bar"></div></div><p>27°C (ตัวอย่าง)</p></div>
+<div class="card"><h2>หลักการทำงาน</h2><ol><li>DHT22 วัดอุณหภูมิ</li><li>ส่งข้อมูลไปยัง GPIO27 ของ ESP32 CYD</li><li>ESP32 ประมวลผล</li><li>แสดงผลบนหน้าจอหรือเว็บ</li></ol></div>
+<div class="card"><h2>ประโยชน์</h2><p>ใช้เฝ้าระวังอุณหภูมิในบ้าน โรงงาน โรงเรือน ห้องเซิร์ฟเวอร์ และใช้เป็นสื่อการเรียนรู้ด้านไมโครคอนโทรลเลอร์และ IoT</p></div>
+<div class="card" id="contact"><h2>ผู้จัดทำ</h2><p><b>ชื่อโครงงาน:</b> Temperature Monitoring<br><b>จัดทำโดย:</b> ภาคภูมิ ทัพชุมพล<br><b>แผนก:</b> เทคโนโลยีคอมพิวเตอร์<br><b>วิทยาลัย:</b> วิทยาลัยเทคนิคตรัง</p></div>
+<footer>© 2026 Temperature Monitoring Project</footer>
+<script>
+function t(){document.getElementById('clock').innerText='วันที่และเวลา: '+new Date().toLocaleString('th-TH')}
+setInterval(t,1000);t();
+</script></body></html>
